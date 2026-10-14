@@ -5,7 +5,8 @@
 ## Trạng thái
 
 - Repository `xenia-sys/studio-hub` được công khai theo xác nhận của chủ studio; dữ liệu trong ứng dụng vẫn yêu cầu đăng nhập và được phân quyền.
-- Chưa kết nối database hoặc triển khai Vercel cho Studio Hub.
+- Đã triển khai Vercel: https://studio-hub-eight-coral.vercel.app — hiện ở màn hình thiết lập, chưa có database Supabase hoặc tài khoản đăng nhập được cấu hình.
+- Supabase project riêng chưa được tạo: kết nối hiện tại báo thao tác kiểm tra chi phí tạo project không khả dụng.
 - Website Sites hiện tại hoạt động độc lập; dữ liệu thật và phiên đăng nhập ChatGPT không tự chuyển sang Supabase.
 - `vercel.json` tắt tự triển khai từ Git để giữ bước kiểm tra quyền truy cập trước khi phát hành.
 

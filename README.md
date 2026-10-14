@@ -5,8 +5,8 @@
 ## Trạng thái
 
 - Repository `xenia-sys/studio-hub` được công khai theo xác nhận của chủ studio; dữ liệu trong ứng dụng vẫn yêu cầu đăng nhập và được phân quyền.
-- Đã triển khai Vercel: https://studio-hub-eight-coral.vercel.app — hiện ở màn hình thiết lập, chưa có database Supabase hoặc tài khoản đăng nhập được cấu hình.
-- Supabase project riêng chưa được tạo: kết nối hiện tại báo thao tác kiểm tra chi phí tạo project không khả dụng.
+- Đã triển khai Vercel: https://studio-hub-eight-coral.vercel.app — hiện ở màn hình thiết lập, chờ khóa server và tài khoản chủ studio.
+- Đã tạo Supabase project riêng `studio-hub` ở Singapore; hai migration đã được áp dụng. Vercel production đã có URL, publishable key và cấu hình email chủ studio. Khóa server và tài khoản Supabase Auth chưa được thiết lập.
 - Website Sites hiện tại hoạt động độc lập; dữ liệu thật và phiên đăng nhập ChatGPT không tự chuyển sang Supabase.
 - `vercel.json` tắt tự triển khai từ Git để giữ bước kiểm tra quyền truy cập trước khi phát hành.
 
@@ -29,7 +29,7 @@
 
 1. Repository GitHub ở chế độ **Public** theo yêu cầu. Không lưu dữ liệu vận hành thật hoặc khóa bí mật vào mã nguồn.
 2. Chọn một Supabase project dành cho Studio Hub. Dự án Supabase đang chứa hệ thống thu mua không phải lựa chọn mặc định.
-3. Sau khi chủ sở hữu xác nhận đúng project, chạy migration trong `supabase/migrations` qua quy trình migration của Supabase. Migration chỉ thêm bảng `studio_hub_workspaces`; không sửa bảng thu mua, không tạo hoặc gửi lời mời cho người dùng.
+3. Sau khi chủ sở hữu xác nhận đúng project, chạy các migration trong `supabase/migrations` theo thứ tự qua quy trình migration của Supabase. Migration thêm bảng `studio_hub_workspaces` và thu hồi quyền gọi công khai của hàm RLS tự động nếu Supabase đã tạo hàm này. Không sửa bảng thu mua, không tạo hoặc gửi lời mời cho người dùng.
 4. Tạo Vercel project riêng `studio-hub`, framework Next.js, Node.js 22+, region Singapore. Website production cho phép truy cập công khai đến màn hình đăng nhập; dữ liệu chỉ dành cho tài khoản được cấp quyền. Có thể bật Deployment Protection cho preview. Không cần bật Public Source trong Vercel vì mã nguồn đã ở GitHub.
 5. Cấu hình trực tiếp trong Vercel 4 biến của `.env.example`: URL, publishable key, secret key chỉ phía server, và email của chủ studio. Không gửi khóa bí mật qua chat hoặc lưu vào Git. Đặt `APP_ORIGIN` nếu dùng một địa chỉ production cố định.
 6. Trong Supabase Auth, tắt đăng ký tự do và anonymous sign-in. Tạo tài khoản chủ studio với email đã xác nhận trong dashboard; không cần endpoint đăng ký công khai. Mật khẩu do người dùng thiết lập an toàn trong Supabase.
@@ -60,7 +60,7 @@ Trước khi triển khai thật cần kiểm tra thêm đăng nhập/đăng xu�
 - Dòng tiền = các khoản thực thu/chi theo ngày giao dịch. Tiền cọc dự án chưa hoàn thành được theo dõi riêng; khoản phải thu chỉ gồm dự án hoàn thành.
 - Snapshot JSON dành cho một studio và nhóm nhỏ; giới hạn 5.000 bản ghi/mục, 20 MB snapshot, 500 audit. Mỗi thay đổi lưu lại toàn bộ snapshot; cần schema chuẩn hóa/phân trang trước khi mở rộng.
 - Chưa có bảng lương, tồn kho, hoàn tiền, số dư đầu kỳ, VAT/khấu hao, nhập hoặc khôi phục JSON. Xuất JSON là bản sao tải xuống; không thay thế cấu hình backup database.
-- Migration chỉ tạo schema. Không nhập tự động dữ liệu đang lưu ở Sites.
+- Migration tạo schema và bảo vệ hàm nội bộ của Supabase. Không nhập tự động dữ liệu đang lưu ở Sites.
 
 ## Tài liệu nguồn
 

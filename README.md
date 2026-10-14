@@ -5,8 +5,10 @@
 ## Trạng thái
 
 - Repository `xenia-sys/studio-hub` được công khai theo xác nhận của chủ studio; dữ liệu trong ứng dụng vẫn yêu cầu đăng nhập và được phân quyền.
-- Đã triển khai Vercel: https://studio-hub-eight-coral.vercel.app — hiện ở màn hình thiết lập, chờ khóa server và tài khoản chủ studio.
-- Đã tạo Supabase project riêng `studio-hub` ở Singapore; hai migration đã được áp dụng. Vercel production đã có URL, publishable key và cấu hình email chủ studio. Khóa server và tài khoản Supabase Auth chưa được thiết lập.
+- Website đã hoạt động: https://studio-hub-eight-coral.vercel.app — đăng nhập bằng tài khoản Studio Hub đã được cấp quyền.
+- Supabase project riêng `studio-hub` ở Singapore dùng gói Free; hai migration đã được áp dụng. Tài khoản chủ studio đã được tạo và đăng nhập thử thành công.
+- Vercel production đã cấu hình đủ URL, publishable key, `SUPABASE_SECRET_KEY` ở chế độ Secret và email chủ studio. Các cấu hình này chỉ đặt ở production; khóa bí mật không nằm trong Git hoặc JavaScript phía trình duyệt.
+- Bản ứng dụng production được triển khai từ commit `3047f893385f78396ff597a658d45a6aaac8a7b3` của nhánh `development`; PR #1 chứa mã nguồn để review. Các commit tài liệu sau đó không thay đổi ứng dụng đã triển khai.
 - Website Sites hiện tại hoạt động độc lập; dữ liệu thật và phiên đăng nhập ChatGPT không tự chuyển sang Supabase.
 - `vercel.json` tắt tự triển khai từ Git để giữ bước kiểm tra quyền truy cập trước khi phát hành.
 
@@ -52,7 +54,16 @@
 
 Tests dùng PostgreSQL cục bộ qua PGlite để kiểm tra migration, quyền RLS và revision; các luồng CRM → dự án → cọc → chi phí → hoàn thành, phân quyền, xác thực đầu vào, xử lý xung đột và render 6 màn hình.
 
-Trước khi triển khai thật cần kiểm tra thêm đăng nhập/đăng xuất, cookie refresh, RLS qua Supabase REST, vai trò của các tài khoản thực, persistence và quyền truy cập dữ liệu trên URL Vercel. Các test cục bộ không thay thế kiểm tra này.
+Kiểm thử production ngày 14/10/2026:
+
+- Đăng nhập chủ studio, tải lại trang giữ phiên, đăng xuất trở về màn hình đăng nhập.
+- Tạo và sửa khách hàng từ giao diện; trạng thái và ghi chú đã lưu vào Supabase, còn nguyên sau khi tải lại trang.
+- Ghi chi phí giả lập 190.000đ và thanh toán một phần 100.000đ liên kết đúng chi phí. Đối chiếu database và dashboard: tổng chi phí 31.690.000đ, dòng tiền ròng 34.900.000đ, phải trả 7.090.000đ. Lợi nhuận quản trị 9.310.000đ.
+- Dọn đúng ba bản ghi kiểm thử tạm, giữ nguyên các bản ghi khác và lịch sử thao tác; dữ liệu mẫu trở về 6 khách, 7 dự án, 4 nhân sự, 5 công việc, 5 chi phí, 8 khoản thu/chi.
+- Khách chưa đăng nhập đến màn hình đăng nhập; `/api/studio` trả 401, không trả dữ liệu workspace. Supabase REST bằng publishable key không đọc được bảng snapshot.
+- Security advisor chỉ còn thông tin RLS không có policy (chủ ý chặn truy cập trực tiếp); không còn cảnh báo quyền execute công khai của hàm RLS tự động. Performance advisor không có mục cần xử lý tại thời điểm kiểm tra.
+
+Phân quyền bốn vai trò đã được kiểm tra bằng tests; phiên production thực tế mới kiểm thử với tài khoản chủ studio. Cần thử thêm bằng tài khoản quản lý, tài chính và chỉ xem khi các tài khoản này được tạo. Chưa kiểm thử phiên đăng nhập hết hạn hoặc cơ chế refresh dài hạn.
 
 ## Cách tính và giới hạn pilot
 

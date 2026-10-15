@@ -425,10 +425,11 @@ small{font-size:13px;line-height:1.55}
 
 .sidebar{overflow-y:auto}
 
-.brand{font-size:30px;letter-spacing:-.8px}
+.brand{font-size:28px;letter-spacing:-.8px;min-width:0;white-space:nowrap}
 
 .brand small{font-size:13px;letter-spacing:.6px;line-height:1.35;max-width:160px;white-space:normal}
-.brand>div{min-width:0;flex:1}
+.brand>.logo-mark{flex:0 0 41px}
+.brand>div:not(.logo-mark){min-width:0;flex:1}
 
 .workspace-picker{min-height:66px}
 

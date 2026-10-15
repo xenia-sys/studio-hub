@@ -8,7 +8,7 @@
 - Website đã hoạt động: https://studio-hub-eight-coral.vercel.app — đăng nhập bằng tài khoản Studio Hub đã được cấp quyền.
 - Supabase project riêng `studio-hub` ở Singapore dùng gói Free; hai migration đã được áp dụng. Tài khoản chủ studio đã được tạo và đăng nhập thử thành công.
 - Vercel production đã cấu hình đủ URL, publishable key, `SUPABASE_SECRET_KEY` ở chế độ Secret và email chủ studio. Các cấu hình này chỉ đặt ở production; khóa bí mật không nằm trong Git hoặc JavaScript phía trình duyệt.
-- Bản ứng dụng production được triển khai từ commit `3047f893385f78396ff597a658d45a6aaac8a7b3` của nhánh `development`; PR #1 chứa mã nguồn để review. Các commit tài liệu sau đó không thay đổi ứng dụng đã triển khai.
+- Mã nguồn ứng dụng ở nhánh `development`; PR #1 chứa các thay đổi để review. Vercel ghi nhận commit cụ thể cho mỗi lần triển khai production.
 - Website Sites hiện tại hoạt động độc lập; dữ liệu thật và phiên đăng nhập ChatGPT không tự chuyển sang Supabase.
 - `vercel.json` tắt tự triển khai từ Git để giữ bước kiểm tra quyền truy cập trước khi phát hành.
 

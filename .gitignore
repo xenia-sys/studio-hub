@@ -8,3 +8,7 @@ coverage/
 test-results/
 supabase/.temp/
 supabase/.branches/
+/dist/
+.vinext/
+.wrangler/
+.dev.vars*

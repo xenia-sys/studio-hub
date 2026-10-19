@@ -1,6 +1,6 @@
 # Studio Hub
 
-Ứng dụng quản lý studio đa dịch vụ: CRM, dự án/booking, nhân sự/công việc, doanh thu, chi phí, lợi nhuận và dòng tiền. Đây là bản chuyển từ website Sites sang **Next.js + Supabase + Vercel**, giữ cỡ chữ lớn đã được chốt.
+Ứng dụng quản lý studio đa dịch vụ: CRM, dự án/booking, nhân sự/công việc, doanh thu, chi phí, lợi nhuận và dòng tiền. Mã nguồn hỗ trợ **Next.js + Supabase**, triển khai trên Vercel hoặc Cloudflare Workers, giữ cỡ chữ lớn đã được chốt.
 
 ## Trạng thái
 
@@ -26,6 +26,40 @@
 | Quản lý | Đọc và sửa | Ẩn; không sửa giá trị | Ẩn | Xem hồ sơ |
 | Tài chính | Chỉ xem | Chỉ xem | Đọc và sửa | Xem hồ sơ |
 | Chỉ xem | Chỉ xem | Ẩn | Ẩn | Xem hồ sơ |
+
+## Cloudflare Workers
+
+Nhánh này bổ sung vinext 1.2.1 và Cloudflare Vite plugin để đóng gói các trang, API và `proxy.ts` thành Worker. Các lệnh Next.js/Vercel vẫn hoạt động. vinext hiện ở giai đoạn beta; cần hoàn tất thử đăng nhập và lưu dữ liệu trên địa chỉ Cloudflare trước khi chuyển nhóm sang dùng.
+
+Đích triển khai: account `0d13e432203561afb28aaf4719d8ffd3`, Worker `studio-hub`. `wrangler.jsonc` cố định đúng account, không khai báo tài nguyên trả phí, không tạo database mới và tắt URL preview. Database và tài khoản tiếp tục dùng project Supabase Studio Hub hiện tại; không chạy lại migration hoặc khởi tạo lại workspace.
+
+Lệnh triển khai:
+
+```bash
+npm ci
+npm run check:cloudflare
+npm run deploy:vinext
+```
+
+`check:cloudflare` kiểm tra kiểu, chạy các test nghiệp vụ/database, build Worker rồi thử HTTP với cấu hình giả: trang đăng nhập, CSS, chuyển hướng, API chưa đăng nhập, Origin và việc không gửi khóa máy chủ xuống HTML. Kiểm tra này không dùng dữ liệu thật và không thay thế kiểm thử đăng nhập production.
+
+Trong Cloudflare **Workers Builds**, dùng repository `xenia-sys/studio-hub`, thư mục `/`, build command `npm run check:cloudflare`, deploy command `npm run deploy:vinext`. Chỉ cấu hình một nhánh production đã kiểm tra. Tắt build nhánh preview; không cấp khóa production cho các nhánh hoặc PR khác. Build dùng dependency development nên không đặt `NPM_CONFIG_PRODUCTION=true`.
+
+Thiết lập các giá trị sau ở **Worker runtime**, sau khi chủ studio cho phép lưu tại Cloudflare:
+
+| Tên | Loại | Giá trị |
+| --- | --- | --- |
+| `NEXT_PUBLIC_SUPABASE_URL` | Text | URL project Studio Hub hiện có |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Text | Publishable key của project đó |
+| `SUPABASE_SECRET_KEY` | Secret | Khóa server hiện có, chỉ Worker được sử dụng |
+| `STUDIO_OWNER_EMAIL` | Secret | Email khởi tạo chủ studio đã được xác nhận |
+| `APP_ORIGIN` | Text | Origin HTTPS chính xác của bản Cloudflare |
+
+Không đặt `SUPABASE_SECRET_KEY` hoặc email chủ studio vào biến build, Git, log hoặc file public. Với triển khai CLI, lưu các Secret bằng `wrangler secret put <NAME>`; giá trị nhập tương tác, không đặt trong tham số lệnh. CLI không cần lưu token vào repository. Khi thử cục bộ, có thể dùng `.dev.vars` (đã được Git bỏ qua).
+
+Sau triển khai, kiểm tra đăng nhập hai tài khoản chủ studio, tải CRM, lưu một bản ghi thử, tải lại, kiểm tra dòng tiền và đăng xuất. Dùng Origin riêng cho Cloudflare và giữ cấu hình Vercel hiện tại. Chưa xóa hay chuyển domain khỏi Vercel.
+
+Trạng thái chuẩn bị ngày 19/10/2026: build Cloudflare và smoke check Workers cục bộ đã qua; chưa triển khai vào tài khoản. Kết nối API đọc được account nhưng các thao tác tạo subdomain, Worker và liên kết GitHub bị Cloudflare từ chối quyền. Chưa sao chép khóa hoặc email sang Cloudflare.
 
 ## Thiết lập riêng tư
 

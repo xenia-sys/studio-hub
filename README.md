@@ -113,3 +113,4 @@ Phân quyền bốn vai trò đã được kiểm tra bằng tests; phiên produ
 - [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)
 - [Vercel Deployment Protection](https://vercel.com/docs/deployment-protection)
 - [Next.js Proxy](https://nextjs.org/docs/app/api-reference/file-conventions/proxy)
+Cloudflare deployment branch: cloudflare-deploy.

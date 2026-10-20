@@ -60,7 +60,7 @@ Không đặt `SUPABASE_SECRET_KEY` hoặc email chủ studio vào biến build,
 Sau triển khai, kiểm tra đăng nhập hai tài khoản chủ studio, tải CRM, lưu một bản ghi thử, tải lại, kiểm tra dòng tiền và đăng xuất. Dùng Origin riêng cho Cloudflare và giữ cấu hình Vercel hiện tại. Chưa xóa hay chuyển domain khỏi Vercel.
 
 Trạng thái chuẩn bị ngày 19/10/2026: build Cloudflare và smoke check Workers cục bộ đã qua; chưa triển khai vào tài khoản. Kết nối API đọc được account nhưng các thao tác tạo subdomain, Worker và liên kết GitHub bị Cloudflare từ chối quyền. Chưa sao chép khóa hoặc email sang Cloudflare.
-
+Cloudflare deployment branch: cloudflare-deploy.
 ## Thiết lập riêng tư
 
 1. Repository GitHub ở chế độ **Public** theo yêu cầu. Không lưu dữ liệu vận hành thật hoặc khóa bí mật vào mã nguồn.
@@ -113,4 +113,4 @@ Phân quyền bốn vai trò đã được kiểm tra bằng tests; phiên produ
 - [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security)
 - [Vercel Deployment Protection](https://vercel.com/docs/deployment-protection)
 - [Next.js Proxy](https://nextjs.org/docs/app/api-reference/file-conventions/proxy)
-Cloudflare deployment branch: cloudflare-deploy.
+

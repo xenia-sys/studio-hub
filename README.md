@@ -101,8 +101,9 @@ Phân quyền bốn vai trò đã được kiểm tra bằng tests; phiên produ
 
 ## Cách tính và giới hạn pilot
 
-- Doanh thu = giá trị toàn bộ hợp đồng khi dự án hoàn thành, theo ngày hoàn thành. Chi phí = khoản đã phát sinh theo ngày phát sinh, gồm chi phí của dự án chưa hoàn thành. Không phân bổ dở dang hoặc chi phí chung vào margin từng dịch vụ.
+- Doanh thu = giá trị toàn bộ hợp đồng khi dự án hoàn thành, theo ngày hoàn thành. Chi phí vận hành = khoản đã phát sinh theo ngày phát sinh, gồm chi phí của dự án chưa hoàn thành. Vốn đầu tư ban đầu (`costKind: initial_capital`) được tổng hợp riêng và không trừ toàn bộ vào lợi nhuận vận hành. Chưa tính khấu hao, phân bổ dở dang hoặc phân bổ chi phí chung vào margin từng dịch vụ.
 - Dòng tiền = các khoản thực thu/chi theo ngày giao dịch. Tiền cọc dự án chưa hoàn thành được theo dõi riêng; khoản phải thu chỉ gồm dự án hoàn thành.
+- Khoản đầu tư đã thanh toán trước khi theo dõi có `openingPaidAmount`. Số tiền này cộng vào đã trả và đối trừ công nợ, không tạo giao dịch chi mới hoặc tự đoán ngày/hình thức thanh toán. Phần trả trước và giao dịch chi sau đó không được vượt tổng khoản đầu tư. Số dư thu/chi không phải số dư tiền thực tế khi chưa nhập số dư đầu kỳ và vốn góp.
 - Snapshot JSON dành cho một studio và nhóm nhỏ; giới hạn 5.000 bản ghi/mục, 20 MB snapshot, 500 audit. Mỗi thay đổi lưu lại toàn bộ snapshot; cần schema chuẩn hóa/phân trang trước khi mở rộng.
 - Chưa có bảng lương, tồn kho, hoàn tiền, số dư đầu kỳ, VAT/khấu hao, nhập hoặc khôi phục JSON. Xuất JSON là bản sao tải xuống; không thay thế cấu hình backup database.
 - Migration tạo schema và bảo vệ hàm nội bộ của Supabase. Không nhập tự động dữ liệu đang lưu ở Sites.

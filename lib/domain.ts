@@ -39,7 +39,7 @@ function date(v:any,required=false){const d=String(v||'');if(!d&&!required)retur
 function choose(v:any,values:string[]){if(!values.includes(v))throw new AppError('Lựa chọn không hợp lệ.');return String(v);}
 function ref(s:Workspace,c:Collection,id:any,required=false){const v=String(id||'');if(!v&&!required)return '';if(!s[c].some(r=>r.id===v))throw new AppError('Bản ghi liên kết không tồn tại.');return v;}
 export function paidProject(s:Workspace,id:string){return s.payments.filter(p=>p.direction==='in'&&p.projectId===id).reduce((a,p)=>a+p.amount,0);}
-export function paidCost(s:Workspace,id:string){return s.payments.filter(p=>p.direction==='out'&&p.costId===id).reduce((a,p)=>a+p.amount,0);}
+export function paidCost(s:Workspace,id:string){return (s.costs.find(c=>c.id===id)?.openingPaidAmount||0)+s.payments.filter(p=>p.direction==='out'&&p.costId===id).reduce((a,p)=>a+p.amount,0);}
 export function normalize(s:Workspace,c:Collection,input:Row,existing?:Row):Row{
  const d=input; const base={id:existing?.id||uid(),updatedAt:new Date().toISOString()};
  if(c==='customers')return {...base,name:str(d,'name',true,160),contact:str(d,'contact',false,160),email:str(d,'email',false,200),source:str(d,'source',false,80),status:choose(d.status,Object.keys(CUSTOMER_STATUS)),followup:date(d.followup),notes:str(d,'notes')};
@@ -60,9 +60,14 @@ export function normalize(s:Workspace,c:Collection,input:Row,existing?:Row):Row{
  }
  if(c==='tasks')return {...base,name:str(d,'name',true,180),projectId:ref(s,'projects',d.projectId),staffId:ref(s,'staff',d.staffId,true),due:date(d.due,true),status:choose(d.status,Object.keys(TASK_STATUS)),hours:Math.max(0,Math.min(1000,Number(d.hours)||0)),notes:str(d,'notes')};
  if(c==='costs'){
-  const value=amount(d.amount);if(existing&&value<paidCost(s,existing.id))throw new AppError('Chi phí không được thấp hơn số tiền đã trả.');
+  const value=amount(d.amount);
+  const costKind=choose(d.costKind??existing?.costKind??'operating',['operating','initial_capital']);
+  const openingPaidAmount=amount(d.openingPaidAmount??existing?.openingPaidAmount??0,true);
+  if(costKind!=='initial_capital'&&openingPaidAmount>0)throw new AppError('Khoản đã trả trước khi theo dõi phải thuộc vốn đầu tư ban đầu.');
+  const recordedPayments=existing?s.payments.filter(p=>p.direction==='out'&&p.costId===existing.id).reduce((sum,p)=>sum+p.amount,0):0;
+  if(value<openingPaidAmount+recordedPayments)throw new AppError('Chi phí không được thấp hơn số tiền đã trả.');
   const incurredAt=date(d.incurredAt,true);if(incurredAt>today())throw new AppError('Chỉ ghi nhận chi phí đã phát sinh; không dùng ngày tương lai.');
-  return {...base,name:str(d,'name',true,180),amount:value,projectId:ref(s,'projects',d.projectId),category:choose(d.category,['production','rent','payroll','equipment','marketing','other']),incurredAt,due:date(d.due),notes:str(d,'notes')};
+  return {...base,name:str(d,'name',true,180),amount:value,costKind,openingPaidAmount,projectId:ref(s,'projects',d.projectId),category:choose(d.category,['production','rent','payroll','equipment','marketing','other']),incurredAt,due:date(d.due),notes:str(d,'notes')};
  }
  if(c==='payments'){
   const direction=choose(d.direction,['in','out']);const value=amount(d.amount);const at=date(d.date,true);if(at>today())throw new AppError('Chỉ ghi tiền đã thực thu/chi, không dùng ngày tương lai.');
@@ -71,7 +76,8 @@ export function normalize(s:Workspace,c:Collection,input:Row,existing?:Row):Row{
   const others=s.payments.filter(p=>p.id!==existing?.id);
   const paid=others.filter(p=>direction==='in'?p.direction==='in'&&p.projectId===projectId:p.direction==='out'&&p.costId===costId).reduce((a,p)=>a+p.amount,0);
   const limit=direction==='in'?s.projects.find(p=>p.id===projectId)!.value:s.costs.find(p=>p.id===costId)!.amount;
-  if(paid+value>limit)throw new AppError(direction==='in'?'Tiền thu vượt giá trị hợp đồng. Hãy điều chỉnh hợp đồng trước.':'Tiền trả vượt tổng chi phí.');
+  const openingPaid=direction==='out'?(s.costs.find(p=>p.id===costId)?.openingPaidAmount||0):0;
+  if(paid+openingPaid+value>limit)throw new AppError(direction==='in'?'Tiền thu vượt giá trị hợp đồng. Hãy điều chỉnh hợp đồng trước.':'Tiền trả vượt tổng chi phí.');
   if(direction==='in'&&s.projects.find(p=>p.id===projectId)?.status==='cancelled')throw new AppError('Không thể thu cho dự án đã hủy.');
   return {...base,name:str(d,'name',true,180),direction,amount:value,date:at,projectId,costId,method:choose(d.method,['bank','cash']),notes:str(d,'notes')};
  }
@@ -80,13 +86,15 @@ export function normalize(s:Workspace,c:Collection,input:Row,existing?:Row):Row{
 export function metrics(s:Workspace,month=''){
  const inPeriod=(d:string)=>!month||d?.startsWith(month);
  const revenue=s.projects.filter(p=>p.status==='completed'&&inPeriod(p.completedAt)).reduce((a,p)=>a+(p.value||0),0);
- const costs=s.costs.filter(c=>inPeriod(c.incurredAt)).reduce((a,c)=>a+c.amount,0);
+ const costs=s.costs.filter(c=>c.costKind!=='initial_capital'&&inPeriod(c.incurredAt)).reduce((a,c)=>a+c.amount,0);
+ const initialInvestment=s.costs.filter(c=>c.costKind==='initial_capital'&&inPeriod(c.incurredAt)).reduce((a,c)=>a+c.amount,0);
+ const openingPaid=s.costs.filter(c=>c.costKind==='initial_capital'&&inPeriod(c.incurredAt)).reduce((a,c)=>a+(c.openingPaidAmount||0),0);
  const cashIn=s.payments.filter(p=>p.direction==='in'&&inPeriod(p.date)).reduce((a,p)=>a+p.amount,0);
  const cashOut=s.payments.filter(p=>p.direction==='out'&&inPeriod(p.date)).reduce((a,p)=>a+p.amount,0);
  const receivable=s.projects.filter(p=>p.status==='completed').reduce((a,p)=>a+Math.max(0,p.value-paidProject(s,p.id)),0);
  const payable=s.costs.reduce((a,c)=>a+Math.max(0,c.amount-paidCost(s,c.id)),0);
  const deposits=s.projects.filter(p=>!['completed','cancelled'].includes(p.status)).reduce((a,p)=>a+paidProject(s,p.id),0);
- return {revenue,costs,profit:revenue-costs,cashIn,cashOut,netCash:cashIn-cashOut,receivable,payable,deposits};
+ return {revenue,costs,initialInvestment,openingPaid,profit:revenue-costs,cashIn,cashOut,netCash:cashIn-cashOut,receivable,payable,deposits};
 }
 export function deleteRecord(s:Workspace,c:Collection,id:string){
  const r=s[c].find(x=>x.id===id);if(!r)throw new AppError('Bản ghi không tồn tại.',404);

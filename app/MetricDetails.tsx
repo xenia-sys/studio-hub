@@ -21,7 +21,7 @@ export default function MetricDetails({ state, range, periodLabel, kind, onOpen,
   { title: 'Tiền chi đã ghi nhận', collection: 'payments', rows: records.cashOut, dateKey: 'date', dateTitle: 'Ngày chi', amountKey: 'amount', subtract: true }
  ];
  const note = kind === 'netCash'
-  ? 'Tiền thu gồm cọc và phiếu tự động khi hoàn thành. Tiền chi gồm cả khoản đầu tư có giao dịch chi trong kỳ. Không cộng số đã trả trước khi theo dõi hoặc số dư đầu kỳ. Đây không phải lợi nhuận ròng sau thuế.'
+  ? 'Tiền thu gồm cọc và phiếu tự động khi hoàn thành. Tiền chi gồm cả khoản đầu tư có giao dịch chi trong kỳ. Không cộng số đã thanh toán nhưng chưa có phiếu chi theo ngày, hoặc số dư đầu kỳ. Đây không phải lợi nhuận ròng sau thuế.'
   : kind === 'revenue' ? 'Cộng toàn bộ giá trị hợp đồng của dự án hoàn thành trong kỳ theo ngày hoàn thành. Tiền cọc của dự án chưa hoàn thành chưa được tính là doanh thu.'
   : 'Chi phí được chọn theo ngày phát sinh, kể cả khi dự án chưa hoàn thành hoặc khoản chi chưa thanh toán. Vốn đầu tư ban đầu được theo dõi riêng. Lợi nhuận quản trị chưa tính thuế, khấu hao và chi phí chưa nhập.';
  const projectName = (id: string) => state.projects.find(p => p.id === id)?.name || 'Chi phí chung';

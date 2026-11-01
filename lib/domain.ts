@@ -72,7 +72,6 @@ export function normalize(s:Workspace,c:Collection,input:Row,existing?:Row):Row{
   const value=amount(d.amount);
   const costKind=choose(d.costKind??existing?.costKind??'operating',['operating','initial_capital']);
   const openingPaidAmount=amount(d.openingPaidAmount??existing?.openingPaidAmount??0,true);
-  if(costKind!=='initial_capital'&&openingPaidAmount>0)throw new AppError('Khoản đã trả trước khi theo dõi phải thuộc vốn đầu tư ban đầu.');
   const recordedPayments=existing?s.payments.filter(p=>p.direction==='out'&&p.costId===existing.id).reduce((sum,p)=>sum+p.amount,0):0;
   if(value<openingPaidAmount+recordedPayments)throw new AppError('Chi phí không được thấp hơn số tiền đã trả.');
   const incurredAt=date(d.incurredAt,true);if(incurredAt>today())throw new AppError('Chỉ ghi nhận chi phí đã phát sinh; không dùng ngày tương lai.');

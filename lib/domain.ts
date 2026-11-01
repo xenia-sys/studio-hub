@@ -1,3 +1,4 @@
+import { inPeriod, type Period } from './period.ts';
 export type Row = { id: string; [key: string]: any };
 export type Collection = 'customers' | 'projects' | 'staff' | 'tasks' | 'costs' | 'payments';
 export type Role = 'owner' | 'manager' | 'finance' | 'viewer';
@@ -93,14 +94,23 @@ export function normalize(s:Workspace,c:Collection,input:Row,existing?:Row):Row{
  }
  throw new AppError('Loại dữ liệu không hợp lệ.');
 }
-export function metrics(s:Workspace,month=''){
- const inPeriod=(d:string)=>!month||d?.startsWith(month);
- const revenue=s.projects.filter(p=>p.status==='completed'&&inPeriod(p.completedAt)).reduce((a,p)=>a+(p.value||0),0);
- const costs=s.costs.filter(c=>c.costKind!=='initial_capital'&&inPeriod(c.incurredAt)).reduce((a,c)=>a+c.amount,0);
- const initialInvestment=s.costs.filter(c=>c.costKind==='initial_capital'&&inPeriod(c.incurredAt)).reduce((a,c)=>a+c.amount,0);
- const openingPaid=s.costs.filter(c=>c.costKind==='initial_capital'&&inPeriod(c.incurredAt)).reduce((a,c)=>a+(c.openingPaidAmount||0),0);
- const cashIn=s.payments.filter(p=>p.direction==='in'&&inPeriod(p.date)).reduce((a,p)=>a+p.amount,0);
- const cashOut=s.payments.filter(p=>p.direction==='out'&&inPeriod(p.date)).reduce((a,p)=>a+p.amount,0);
+export function metricRecords(s:Workspace,period:Period=''){
+ return {
+  revenue:s.projects.filter(p=>p.status==='completed'&&inPeriod(p.completedAt,period)),
+  costs:s.costs.filter(c=>c.costKind!=='initial_capital'&&inPeriod(c.incurredAt,period)),
+  investment:s.costs.filter(c=>c.costKind==='initial_capital'&&inPeriod(c.incurredAt,period)),
+  cashIn:s.payments.filter(p=>p.direction==='in'&&inPeriod(p.date,period)),
+  cashOut:s.payments.filter(p=>p.direction==='out'&&inPeriod(p.date,period))
+ };
+}
+export function metrics(s:Workspace,period:Period=''){
+ const rows=metricRecords(s,period);
+ const revenue=rows.revenue.reduce((a,p)=>a+(p.value||0),0);
+ const costs=rows.costs.reduce((a,c)=>a+c.amount,0);
+ const initialInvestment=rows.investment.reduce((a,c)=>a+c.amount,0);
+ const openingPaid=rows.investment.reduce((a,c)=>a+(c.openingPaidAmount||0),0);
+ const cashIn=rows.cashIn.reduce((a,p)=>a+p.amount,0);
+ const cashOut=rows.cashOut.reduce((a,p)=>a+p.amount,0);
  const receivable=s.projects.filter(p=>p.status==='completed').reduce((a,p)=>a+Math.max(0,p.value-paidProject(s,p.id)),0);
  const payable=s.costs.reduce((a,c)=>a+Math.max(0,c.amount-paidCost(s,c.id)),0);
  const deposits=s.projects.filter(p=>!['completed','cancelled'].includes(p.status)).reduce((a,p)=>a+paidProject(s,p.id),0);

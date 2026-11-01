@@ -851,6 +851,74 @@ td small{color:#65745c}
 .login-form .button{width:100%;min-height:48px;justify-content:center}
 .login-card>.notice{margin:24px 0}
 @media(max-width:520px){.login-shell{padding:20px}.login-card{padding:28px}.login-card h1{font-size:30px}}
+
+.date-filter{border:1px solid var(--line);border-radius:14px;background:#fff;padding:19px 21px;margin-bottom:24px}
+.date-filter-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:17px;flex-wrap:wrap}
+.date-filter-heading>span{display:flex;align-items:center;gap:8px;font-weight:600;color:#455d42}
+.date-shortcuts{display:flex;gap:7px;flex-wrap:wrap}
+.date-shortcuts button{display:inline-flex;align-items:center;gap:5px;background:#f2f5ec;color:#53694a;padding:7px 10px;border-radius:7px;font-size:14px}
+.date-shortcuts button:hover{background:#e4edce}
+.date-filter-controls{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.date-filter-controls label{display:flex;flex-direction:column;gap:7px;flex:1 1 155px;min-width:0;max-width:280px}
+.date-filter-controls label>span{font-size:13px;color:#5f7056}
+.date-filter-controls input,.date-filter-controls select{min-width:0;width:100%;min-height:44px;padding:9px 11px;border:1px solid #dce4d3;border-radius:8px;color:#354c32;background:#fff;font-size:15px}
+.date-filter-controls>.button{min-height:44px}
+.date-filter-summary{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;color:#3f5939;margin-top:16px;line-height:1.6}
+.date-filter-summary b{font-weight:550}
+.pending-filter{color:#886324;background:#fcf3dd;padding:3px 8px;border-radius:5px;font-size:12px}
+.date-filter-help,.scope-note{font-size:13px;line-height:1.8;color:#66765c;margin-top:7px}
+.scope-note{margin-bottom:17px}
+.date-filter-error{margin-top:12px;color:#a04636;font-size:14px;line-height:1.6}
+.filter-result-count{font-size:14px;color:#627454;margin:0 0 15px;line-height:1.8}
+.stat-clickable{text-align:left;width:100%;transition:border-color .15s,box-shadow .15s,transform .15s}
+.stat-clickable:hover{border-color:#98b078;box-shadow:0 5px 20px #42694a12;transform:translateY(-2px)}
+.stat-action{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:550;color:#456b3d;margin-top:14px}
+.trend-scroll{overflow-x:auto;overscroll-behavior-x:contain}
+.period-chart .bar-group{flex:1;min-width:28px}
+.period-chart .bar-groups{gap:7px}
+.period-chart .chart-bar{width:min(19px,38%)}
+.period-chart .bar-group>span{white-space:nowrap;font-size:12px}
+.metric-period{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:14px;color:#677b5b;margin-bottom:17px}
+.metric-result{background:#eaf1dc;border:1px solid #dbe7c7;border-radius:11px;padding:18px 20px;color:#3f5a35}
+.metric-result>span{display:block;font-size:14px}
+.metric-result strong{display:block;font-size:32px;line-height:1.4;margin-top:9px;font-weight:600;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.metric-equation{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;padding:17px 5px 0;color:#5a6f4d}
+.metric-equation>div{display:flex;flex-direction:column;gap:8px;min-width:0}
+.metric-equation span{font-size:13px;line-height:1.6}
+.metric-equation b{font-size:17px;font-weight:550;overflow-wrap:anywhere}
+.metric-method{margin-top:17px}
+.metric-instruction{font-size:14px;color:#617653;line-height:1.8;margin:19px 0}
+.metric-section{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:19px}
+.metric-section-head{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:16px;background:#f8faf3;flex-wrap:wrap}
+.metric-section-head h3{font-size:15px;line-height:1.6;font-weight:600}
+.metric-section-head small{display:block;font-size:12px;font-weight:400;margin-top:3px}
+.metric-section-head>strong{font-size:16px;color:#4e6944;font-variant-numeric:tabular-nums}
+.metric-details table{min-width:510px;white-space:normal}
+.metric-details th,.metric-details td{padding:12px 14px}
+.metric-details td:nth-child(2){min-width:100px;white-space:nowrap;font-size:13px}
+.metric-details td:last-child,.metric-details tfoot th:last-child{white-space:nowrap}
+.metric-details td small{line-height:1.7;overflow-wrap:anywhere}
+.metric-record-link{display:inline-flex;align-items:center;gap:6px;background:transparent;text-align:left;padding:0;color:#36542e;font-weight:550;line-height:1.7;overflow-wrap:anywhere}
+.metric-record-link:hover{text-decoration:underline}
+.metric-record-link svg{flex-shrink:0}
+.metric-empty{padding:25px 16px;color:#6b7b5e;font-size:14px;line-height:1.8}
+.report-back{margin-bottom:23px}
+.report-back svg{transform:rotate(180deg)}
+@media(max-width:720px){.date-filter{padding:16px}.date-filter-controls label{max-width:none;flex-basis:calc(50% - 6px)}.date-filter-controls>.button{width:100%}.date-filter-heading{align-items:flex-start;flex-direction:column}.metric-result strong{font-size:27px}.metric-equation b{font-size:15px}}
+@media(max-width:420px){.date-filter-controls label{flex-basis:100%}.date-shortcuts{gap:5px}.date-shortcuts button{font-size:12px;padding:7px 8px}.metric-period{align-items:flex-start;flex-direction:column}.metric-equation{gap:8px}.metric-equation span{font-size:12px}}
+@media(max-width:520px){
+ .metric-details table{min-width:0}
+ .metric-details thead{display:none}
+ .metric-details tbody tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px 12px;padding:14px;border-bottom:1px solid var(--line)}
+ .metric-details tbody td{padding:0;border:0;min-width:0}
+ .metric-details tbody td:first-child{grid-column:1/-1}
+ .metric-details tbody td:nth-child(2){min-width:0;font-size:12px;line-height:1.7;white-space:normal}
+ .metric-details tbody td:nth-child(2)::before{content:attr(data-label) ': ';display:block;color:#6b7b60;font-size:11px}
+ .metric-details tbody td:last-child{font-size:14px;align-self:end;white-space:normal;overflow-wrap:anywhere;max-width:165px}
+ .metric-details tfoot tr{display:flex;justify-content:space-between;gap:10px;background:#f8faf3}
+ .metric-details tfoot th{border:0;background:transparent;padding:12px 14px}
+ .metric-details tfoot th:last-child{font-size:13px;white-space:normal}
+}
 .project-receipts{border:1px solid #dfe7d7;border-radius:10px;padding:20px;background:#f7f9f1;gap:12px}
 .project-receipts h3{font-size:18px;color:#34482d}
 .project-receipts>p{font-size:15px;line-height:1.6;color:#5d7350}

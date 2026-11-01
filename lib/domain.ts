@@ -12,6 +12,7 @@ export const SERVICES = ['Nhiếp ảnh', 'Cho thuê studio', 'Video', 'Thiết 
 export const ROLES: Record<Role,string> = {owner:'Chủ studio',manager:'Quản lý vận hành',finance:'Tài chính',viewer:'Chỉ xem'};
 export const PROJECT_STATUS:Record<string,string> = {quote:'Báo giá',confirmed:'Đã xác nhận',ongoing:'Đang thực hiện',completed:'Hoàn thành',cancelled:'Đã hủy'};
 export const TASK_STATUS:Record<string,string>={todo:'Cần làm',doing:'Đang làm',done:'Hoàn thành'};
+export const PAYMENT_METHOD:Record<string,string>={bank:'Chuyển khoản',cash:'Tiền mặt',unspecified:'Chưa xác định'};
 export const CUSTOMER_STATUS:Record<string,string>={lead:'Tiềm năng',active:'Đang hợp tác',returning:'Khách quay lại'};
 export class AppError extends Error { status:number; constructor(message:string,status=400){super(message);this.status=status;} }
 export function today(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
@@ -40,6 +41,13 @@ function choose(v:any,values:string[]){if(!values.includes(v))throw new AppError
 function ref(s:Workspace,c:Collection,id:any,required=false){const v=String(id||'');if(!v&&!required)return '';if(!s[c].some(r=>r.id===v))throw new AppError('Bản ghi liên kết không tồn tại.');return v;}
 export function paidProject(s:Workspace,id:string){return s.payments.filter(p=>p.direction==='in'&&p.projectId===id).reduce((a,p)=>a+p.amount,0);}
 export function paidCost(s:Workspace,id:string){return (s.costs.find(c=>c.id===id)?.openingPaidAmount||0)+s.payments.filter(p=>p.direction==='out'&&p.costId===id).reduce((a,p)=>a+p.amount,0);}
+function protectCompletedReceipt(s:Workspace,existing:Row,next?:Row){
+ if(existing.direction!=='in')return;
+ const project=s.projects.find(p=>p.id===existing.projectId);
+ if(project?.status!=='completed')return;
+ const contribution=next?.direction==='in'&&next.projectId===project.id?next.amount:0;
+ if(paidProject(s,project.id)-existing.amount+contribution<project.value)throw new AppError('Dự án hoàn thành đã được tính là thu đủ. Chuyển dự án về Đang thực hiện trước khi giảm hoặc xóa khoản thu.');
+}
 export function normalize(s:Workspace,c:Collection,input:Row,existing?:Row):Row{
  const d=input; const base={id:existing?.id||uid(),updatedAt:new Date().toISOString()};
  if(c==='customers')return {...base,name:str(d,'name',true,160),contact:str(d,'contact',false,160),email:str(d,'email',false,200),source:str(d,'source',false,80),status:choose(d.status,Object.keys(CUSTOMER_STATUS)),followup:date(d.followup),notes:str(d,'notes')};
@@ -79,7 +87,9 @@ export function normalize(s:Workspace,c:Collection,input:Row,existing?:Row):Row{
   const openingPaid=direction==='out'?(s.costs.find(p=>p.id===costId)?.openingPaidAmount||0):0;
   if(paid+openingPaid+value>limit)throw new AppError(direction==='in'?'Tiền thu vượt giá trị hợp đồng. Hãy điều chỉnh hợp đồng trước.':'Tiền trả vượt tổng chi phí.');
   if(direction==='in'&&s.projects.find(p=>p.id===projectId)?.status==='cancelled')throw new AppError('Không thể thu cho dự án đã hủy.');
-  return {...base,name:str(d,'name',true,180),direction,amount:value,date:at,projectId,costId,method:choose(d.method,['bank','cash']),notes:str(d,'notes')};
+  const next={...base,name:str(d,'name',true,180),direction,amount:value,date:at,projectId,costId,method:choose(d.method,Object.keys(PAYMENT_METHOD)),notes:str(d,'notes'),...(existing?.automaticReceipt?{automaticReceipt:true}:{})};
+  if(existing)protectCompletedReceipt(s,existing,next);
+  return next;
  }
  throw new AppError('Loại dữ liệu không hợp lệ.');
 }
@@ -98,6 +108,7 @@ export function metrics(s:Workspace,month=''){
 }
 export function deleteRecord(s:Workspace,c:Collection,id:string){
  const r=s[c].find(x=>x.id===id);if(!r)throw new AppError('Bản ghi không tồn tại.',404);
+ if(c==='payments')protectCompletedReceipt(s,r);
  if(c==='customers'&&s.projects.some(p=>p.clientId===id))throw new AppError('Khách hàng đang liên kết dự án.');
  if(c==='projects'&&(s.tasks.some(t=>t.projectId===id)||s.costs.some(t=>t.projectId===id)||s.payments.some(t=>t.projectId===id)))throw new AppError('Dự án có công việc hoặc tài chính liên kết.');
  if(c==='staff'&&(s.tasks.some(t=>t.staffId===id)||s.projects.some(p=>p.staffIds?.includes(id))))throw new AppError('Nhân sự có công việc hoặc dự án liên kết. Chuyển sang ngừng hợp tác.');

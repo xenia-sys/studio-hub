@@ -27,7 +27,7 @@ test('CRM → personnel → project → deposit → cost → payment → complet
  cost=await create('costs',{name:'Crew',amount:2000000,projectId:project.id,category:'production',incurredAt:today()});
  await create('payments',{name:'Trả crew',direction:'out',amount:1000000,costId:cost.id,date:today(),method:'bank'});
  await action({action:'save',collection:'projects',record:{...project,status:'completed',completedAt:today()}});
- state=(await getState(db,owner,owner.email)).state;const m=metrics(state);assert.equal(m.revenue,10000000);assert.equal(m.profit,8000000);assert.equal(m.netCash,2000000);assert.equal(m.receivable,7000000);assert.equal(m.payable,1000000);assert.equal(m.deposits,0);
+ state=(await getState(db,owner,owner.email)).state;const m=metrics(state);assert.equal(m.revenue,10000000);assert.equal(m.profit,8000000);assert.equal(m.netCash,9000000);assert.equal(m.receivable,0);assert.equal(m.payable,1000000);assert.equal(m.deposits,0);
  const task=await create('tasks',{name:'Bàn giao ảnh',projectId:project.id,staffId:person.id,status:'todo',due:today(),hours:3});
  await action({action:'save',collection:'tasks',record:{...task,status:'done'}});assert.equal((await getState(db,owner,owner.email)).state.tasks[0].status,'done');
 });
@@ -57,8 +57,12 @@ test('atomic optimistic concurrency prevents lost updates',async()=>{
  assert.equal(changes.filter(c=>c.status==='fulfilled').length,1);assert.equal(changes.filter(c=>c.status==='rejected'&&c.reason.status===409).length,1);
  assert.equal((await getState(db,owner,owner.email)).state.customers.filter(c=>c.name.startsWith('Concurrent')).length,1);
 });
-test('state survives independent reads and deletions refresh cash totals',async()=>{
- await action({action:'delete',collection:'payments',id:payment.id});const b=await getState(db,owner,owner.email);assert.equal(metrics(b.state).cashIn,0);assert.equal(metrics(b.state).receivable,10000000);assert.ok(b.state.audit.length>0);
+test('completed receipts are protected and reopening enables cash corrections',async()=>{
+ await assert.rejects(action({action:'delete',collection:'payments',id:payment.id}),/Đang thực hiện/);
+ let b=await getState(db,owner,owner.email);const current=b.state.projects.find((p:any)=>p.id===project.id);
+ await action({action:'save',collection:'projects',record:{...current,status:'ongoing'}});
+ for(const p of b.state.payments.filter((p:any)=>p.direction==='in'&&p.projectId===project.id))await action({action:'delete',collection:'payments',id:p.id});
+ b=await getState(db,owner,owner.email);assert.equal(metrics(b.state).cashIn,0);assert.equal(metrics(b.state).receivable,0);assert.ok(b.state.audit.length>0);
  await assert.rejects(action({action:'demo'}),/trống/);
 });
 test('only configured owner can initialize, stable IDs prevent email takeover, and inactive members stay blocked',async()=>{

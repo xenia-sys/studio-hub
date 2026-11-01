@@ -3,13 +3,12 @@ import React from 'react';
 import { today } from '../lib/domain';
 import type { ProjectReceiptRequest } from '../lib/project-receipts';
 
-export type ReceiptDraft={depositAmount:number;depositDate:string;depositMethod:string;collectBalance:boolean;balanceDate:string;balanceMethod:string};
-export function emptyReceiptDraft():ReceiptDraft{return {depositAmount:0,depositDate:today(),depositMethod:'',collectBalance:false,balanceDate:today(),balanceMethod:''};}
+export type ReceiptDraft={depositAmount:number;depositDate:string;depositMethod:string};
+export function emptyReceiptDraft():ReceiptDraft{return {depositAmount:0,depositDate:today(),depositMethod:''};}
 export function projectReceiptRequests(draft:ReceiptDraft,isNew:boolean,status:string):ProjectReceiptRequest[]{
  if(status==='cancelled')return [];
  const requests:ProjectReceiptRequest[]=[];
  if(isNew&&draft.depositAmount>0)requests.push({kind:'deposit',amount:draft.depositAmount,date:draft.depositDate,method:draft.depositMethod});
- if(status==='completed'&&draft.collectBalance)requests.push({kind:'balance',date:draft.balanceDate,method:draft.balanceMethod});
  return requests;
 }
 
@@ -28,15 +27,12 @@ export default function ProjectReceipts({isNew,value,status,alreadyPaid,draft,on
  if(status==='cancelled')return <div className="notice form-field full">Dự án đã hủy không ghi nhận thêm tiền cọc hoặc tiền thu.</div>;
  return <section className="project-receipts form-field full" aria-label="Tiền cọc và thanh toán">
   <h3>Tiền cọc & thanh toán</h3>
-  <p>Chỉ ghi số tiền khách đã chuyển hoặc đã trả thực tế.</p>
+  <p>Nhập tiền cọc đã nhận. Khi lưu trạng thái Hoàn thành, hệ thống tự ghi thu đủ giá trị hợp đồng.</p>
   <div className="form-grid">
    {isNew&&<label className="form-field full"><span>Số tiền cọc đã nhận (VND)</span><input type="number" min={0} max={value} step={1} value={draft.depositAmount} onChange={e=>onChange({...draft,depositAmount:Number(e.target.value)})}/><small>Để 0 nếu chưa nhận cọc. Khoản cọc được ghi vào Tiền thực thu / chi khi lưu dự án.</small></label>}
    {isNew&&deposit>0&&<ReceiptFields kind="deposit" date={draft.depositDate} method={draft.depositMethod} onDate={v=>onChange({...draft,depositDate:v})} onMethod={v=>onChange({...draft,depositMethod:v})}/>}
    <div className="receipt-totals form-field full"><span>Đã ghi nhận thu: <b>{money(alreadyPaid)}</b></span>{deposit>0&&<span>Cọc ghi thêm: <b>{money(deposit)}</b></span>}<span>Còn theo hợp đồng: <b>{money(remaining)}</b></span></div>
-   {status==='completed'&&remaining>0&&<>
-    <label className="check-label form-field full"><input type="checkbox" checked={draft.collectBalance} onChange={e=>onChange({...draft,collectBalance:e.target.checked})}/>Khách đã thanh toán đủ phần còn lại</label>
-    {draft.collectBalance?<><div className="notice form-field full">Khi lưu, ghi thêm khoản thực thu <b>{money(remaining)}</b>. Tổng đã thu sẽ bằng giá trị hợp đồng.</div><ReceiptFields kind="balance" date={draft.balanceDate} method={draft.balanceMethod} onDate={v=>onChange({...draft,balanceDate:v})} onMethod={v=>onChange({...draft,balanceMethod:v})}/></>:<div className="notice form-field full">Hoàn thành dịch vụ vẫn giữ khoản còn phải thu {money(remaining)} nếu chưa xác nhận nhận đủ tiền.</div>}
-   </>}
+   {status==='completed'&&remaining>0&&<div className="notice form-field full">Khi lưu Hoàn thành, tự động ghi thu thêm <b>{money(remaining)}</b>, sau khi trừ tiền cọc và các lần thu đã có. Đã thu sẽ bằng <b>{money(value)}</b>. Ngày thu dùng ngày hoàn thành; hình thức thu để Chưa xác định và có thể cập nhật sau.</div>}
    {status==='completed'&&remaining===0&&<div className="notice form-field full">Đã đủ giá trị hợp đồng sau các khoản thu ở trên. Không tạo thêm khoản thu còn lại.</div>}
   </div>
  </section>;

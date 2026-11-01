@@ -1,7 +1,7 @@
-import { AppError, canWrite, memberFor, visibleState, normalize, deleteRecord, uid, SERVICES, type Collection, type Identity, type Workspace, type Row } from './domain.ts';
+import { AppError, canWrite, memberFor, visibleState, normalize, deleteRecord, uid, SERVICES, paidProject, type Collection, type Identity, type Workspace, type Row } from './domain.ts';
 import { demoWorkspace } from './demo.ts';
 import type { WorkspaceStore } from './store.ts';
-import { recordProjectReceipts } from './project-receipts.ts';
+import { recordProjectReceipts, completeProjectReceipt } from './project-receipts.ts';
 const COLLECTIONS=['customers','projects','staff','tasks','costs','payments'];
 export async function readWorkspace(store:WorkspaceStore,u:Identity,ownerEmail:string){
  let row=await store.read();
@@ -43,12 +43,17 @@ export async function mutate(store:WorkspaceStore,u:Identity,body:any,ownerEmail
    // Operational managers cannot change financial contract values.
    if(m.role==='manager'&&col==='projects')input.value=existing?.value??0;
    const normalized=normalize(s,col,input,existing);
+   if(col==='projects'&&normalized.status==='completed'&&normalized.value>paidProject(s,normalized.id)&&!canWrite(m.role,'payments'))throw new AppError('Hoàn thành dự án sẽ tự ghi thu đủ. Chủ studio cần thực hiện bước này.',403);
    if(s[col].length>=5000&&!existing)throw new AppError('Đã đạt giới hạn 5.000 bản ghi mỗi mục của bản thử nghiệm.');
    if(existing)s[col]=s[col].map(r=>r.id===existing.id?normalized:r);else s[col].push(normalized);
    detail=normalized.name;
    if(col==='projects'&&body.projectReceipts?.length){
     const receipts=recordProjectReceipts(s,normalized,!existing,body.projectReceipts);
     if(receipts.length)detail+=' · '+receipts.map(r=>r.name+': '+r.amount.toLocaleString('vi-VN')+' VND').join(' · ');
+   }
+   if(col==='projects'){
+    const receipt=completeProjectReceipt(s,normalized);
+    if(receipt)detail+=' · '+receipt.name+': '+receipt.amount.toLocaleString('vi-VN')+' VND';
    }
   }else{const item=s[col].find(r=>r.id===body.id);deleteRecord(s,col,body.id);detail=item?.name||body.id;}
  }else if(action==='settings'){

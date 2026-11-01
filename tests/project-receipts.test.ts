@@ -21,14 +21,14 @@ async function fixture(run:(ctx:any)=>Promise<void>){
  try{await run({store,save});}finally{await pg.close();}
 }
 
-test('create with deposit, complete without receipt, then collect the exact balance and persist totals',async()=>fixture(async({store,save})=>{
+test('completion automatically collects only the remaining balance and repeated saves do not duplicate it',async()=>fixture(async({store,save})=>{
  let b=await save(base(),[deposit()]);const project=b.state.projects[0];
  assert.equal(b.state.payments.length,1);assert.equal(b.state.payments[0].projectId,project.id);
  assert.equal(paidProject(b.state,project.id),300000);assert.equal(metrics(b.state).deposits,300000);assert.equal(metrics(b.state).revenue,0);
  b=await save({...project,status:'completed',completedAt:today()});
- assert.equal(paidProject(b.state,project.id),300000);assert.equal(metrics(b.state).receivable,700000);assert.equal(metrics(b.state).revenue,1000000);
- b=await save({...b.state.projects[0]},[balance()]);
  assert.equal(b.state.payments.length,2);assert.equal(b.state.payments[1].amount,700000);
+ assert.equal(b.state.payments[1].method,'unspecified');assert.equal(b.state.payments[1].automaticReceipt,true);
+ assert.equal(b.state.payments[1].date,project.due);assert.equal(metrics(b.state).revenue,1000000);
  assert.equal(metrics(b.state).cashIn,1000000);assert.equal(metrics(b.state).receivable,0);
  b=await save({...b.state.projects[0]},[balance()]);assert.equal(b.state.payments.length,2);
  const persisted=await getState(store,owner,owner.email);assert.equal(paidProject(persisted.state,project.id),1000000);
@@ -50,12 +50,14 @@ test('new completed project records deposit and server-calculated remaining amou
  assert.equal(b.revision,1);assert.equal(metrics(b.state).cashIn,1000000);assert.equal(metrics(b.state).receivable,0);
 }));
 
-test('managers cannot create receipts, while completing an existing booking preserves the original receipts',async()=>fixture(async({store,save})=>{
+test('only a financial writer may complete an unpaid project; managers may edit an already settled project',async()=>fixture(async({store,save})=>{
  await assert.rejects(save(base(),[deposit()],manager),(e:any)=>e.status===403);
  let b=await save(base(),[deposit()]);const project=b.state.projects[0];
  await assert.rejects(save({...project,status:'completed',completedAt:today()},[balance()],manager),(e:any)=>e.status===403);
- await save({...project,status:'completed',completedAt:today(),value:0},undefined,manager);
- b=await getState(store,owner,owner.email);assert.equal(b.state.projects[0].value,1000000);assert.equal(paidProject(b.state,project.id),300000);
+ await assert.rejects(save({...project,status:'completed',completedAt:today(),value:0},undefined,manager),(e:any)=>e.status===403);
+ b=await save({...project,status:'completed',completedAt:today()});
+ await save({...b.state.projects[0],name:'Manager edit',value:0},undefined,manager);
+ b=await getState(store,owner,owner.email);assert.equal(b.state.projects[0].value,1000000);assert.equal(paidProject(b.state,project.id),1000000);
  await assert.rejects(save({...b.state.projects[0]},[deposit()]),/chỉ ghi khi tạo/);
 }));
 
@@ -68,14 +70,44 @@ test('concurrent duplicate project/deposit submissions commit only one pair',asy
  const saved=await getState(store,owner,owner.email);assert.equal(saved.state.projects.length,1);assert.equal(saved.state.payments.length,1);
 }));
 
-test('form clearly separates received deposits and explicitly confirmed final collection',()=>{
- const draft={...emptyReceiptDraft(),depositAmount:300000,depositMethod:'bank',collectBalance:true,balanceMethod:'cash'};
- assert.deepEqual(projectReceiptRequests(draft,true,'completed').map(r=>r.kind),['deposit','balance']);
- assert.deepEqual(projectReceiptRequests(draft,false,'completed').map(r=>r.kind),['balance']);
+test('form shows automatic final collection without a second confirmation checkbox',()=>{
+ const draft={...emptyReceiptDraft(),depositAmount:300000,depositMethod:'bank'};
+ assert.deepEqual(projectReceiptRequests(draft,true,'completed').map(r=>r.kind),['deposit']);
+ assert.deepEqual(projectReceiptRequests(draft,false,'completed'),[]);
  assert.deepEqual(projectReceiptRequests(draft,false,'confirmed'),[]);
  assert.deepEqual(projectReceiptRequests(draft,true,'cancelled'),[]);
  const html=renderToString(React.createElement(ProjectReceipts,{isNew:true,value:1000000,status:'completed',alreadyPaid:0,draft,onChange:()=>{}}));
- for(const label of ['Số tiền cọc đã nhận','Ngày nhận cọc','Hình thức nhận cọc','Khách đã thanh toán đủ phần còn lại','Ngày thu phần còn lại','700.000'])assert.ok(html.includes(label),label);
+ for(const label of ['Số tiền cọc đã nhận','Ngày nhận cọc','Hình thức nhận cọc','tự động ghi thu thêm','Chưa xác định','700.000'])assert.ok(html.includes(label),label);
+ assert.ok(!html.includes('type="checkbox"'));
  const edit=renderToString(React.createElement(ProjectReceipts,{isNew:false,value:1000000,status:'completed',alreadyPaid:1000000,draft:emptyReceiptDraft(),onChange:()=>{}}));
  assert.ok(!edit.includes('Số tiền cọc đã nhận'));assert.ok(!edit.includes('type="checkbox"'));
 });
+
+test('completed receipt corrections keep the balance invariant and reopening allows a correction',async()=>fixture(async({store,save})=>{
+ let b=await save({...base(),status:'completed',completedAt:today()},[deposit()]);
+ const project=b.state.projects[0],receipt=b.state.payments[1];
+ const action=async(body:any)=>{const current=await getState(store,owner,owner.email);return mutate(store,owner,{...body,revision:current.revision},owner.email);};
+ await assert.rejects(action({action:'delete',collection:'payments',id:receipt.id}),/Đang thực hiện/);
+ await assert.rejects(action({action:'save',collection:'payments',record:{...receipt,amount:100000}}),/Đang thực hiện/);
+ b=await action({action:'save',collection:'payments',record:{...receipt,method:'bank'}});
+ assert.equal(b.state.payments[1].automaticReceipt,true);assert.equal(b.state.payments[1].method,'bank');
+ b=await save({...project,status:'ongoing'});
+ await action({action:'delete',collection:'payments',id:receipt.id});
+ b=await save({...project,status:'completed',completedAt:today()});
+ assert.equal(b.state.payments.length,2);assert.equal(paidProject(b.state,project.id),1000000);
+ assert.equal(b.state.payments[0].amount,300000);
+}));
+
+test('zero value and fully prepaid contracts complete without another receipt',async()=>fixture(async({save})=>{
+ let b=await save({...base(),value:0,status:'completed',completedAt:today()});assert.equal(b.state.payments.length,0);
+ b=await save({...base(),status:'completed',completedAt:today()},[deposit(1000000)]);
+ assert.equal(b.state.payments.length,1);assert.equal(b.state.payments[0].automaticReceipt,undefined);
+}));
+
+test('duplicate completion requests add a single automatic balance receipt',async()=>fixture(async({store,save})=>{
+ const first=await save(base(),[deposit()]);
+ const body={action:'save',collection:'projects',record:{...first.state.projects[0],status:'completed',completedAt:today()},revision:first.revision};
+ const attempts=await Promise.allSettled([mutate(store,owner,structuredClone(body),owner.email),mutate(store,owner,structuredClone(body),owner.email)]);
+ assert.equal(attempts.filter(a=>a.status==='fulfilled').length,1);
+ const saved=await getState(store,owner,owner.email);assert.equal(saved.state.payments.length,2);assert.equal(paidProject(saved.state,first.state.projects[0].id),1000000);
+}));

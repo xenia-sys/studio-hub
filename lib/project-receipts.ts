@@ -7,6 +7,18 @@ export type ProjectReceiptRequest = {
  method: string;
 };
 
+/** Studio rule: saving a completed project also settles its remaining contract balance. */
+export function completeProjectReceipt(s:Workspace,project:Row){
+ if(project.status!=='completed')return;
+ const remaining=project.value-paidProject(s,project.id);
+ if(remaining<=0)return;
+ if(s.payments.length>=5000)throw new AppError('Đã đạt giới hạn 5.000 giao dịch.');
+ const receipt=normalize(s,'payments',{id:'',name:('Tự động thu đủ · '+project.name).slice(0,180),direction:'in',amount:remaining,projectId:project.id,date:project.completedAt,method:'unspecified',notes:'Tự động ghi thu theo quy tắc chủ studio: dự án Hoàn thành được xem là đã thu đủ giá trị hợp đồng. Đã trừ các khoản cọc và tiền thu đã ghi. Ngày giao dịch dùng ngày hoàn thành; hình thức thanh toán chưa xác định, có thể cập nhật sau khi đối chiếu.'});
+ receipt.automaticReceipt=true;
+ s.payments.push(receipt);
+ return receipt;
+}
+
 /** Called after project validation, before the single workspace compare-and-swap. */
 export function recordProjectReceipts(s:Workspace,project:Row,isNew:boolean,input:unknown){
  if(!Array.isArray(input)||input.length>2)throw new AppError('Thông tin nhận tiền dự án không hợp lệ.');

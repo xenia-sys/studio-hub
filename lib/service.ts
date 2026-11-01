@@ -1,6 +1,7 @@
 import { AppError, canWrite, memberFor, visibleState, normalize, deleteRecord, uid, SERVICES, type Collection, type Identity, type Workspace, type Row } from './domain.ts';
 import { demoWorkspace } from './demo.ts';
 import type { WorkspaceStore } from './store.ts';
+import { recordProjectReceipts } from './project-receipts.ts';
 const COLLECTIONS=['customers','projects','staff','tasks','costs','payments'];
 export async function readWorkspace(store:WorkspaceStore,u:Identity,ownerEmail:string){
  let row=await store.read();
@@ -28,6 +29,10 @@ export async function mutate(store:WorkspaceStore,u:Identity,body:any,ownerEmail
  const {state:s,member:m,revision}=await readWorkspace(store,u,ownerEmail);
  if(body.revision!==revision)throw new AppError('Dữ liệu vừa thay đổi bởi người khác. Đã tải bản mới; vui lòng thử lưu lại.',409);
  const col=body.collection as Collection; let detail='';let action=body.action;
+ if(body.projectReceipts!==undefined){
+  if(action!=='save'||col!=='projects'||!Array.isArray(body.projectReceipts)||body.projectReceipts.length>2)throw new AppError('Thông tin nhận tiền dự án không hợp lệ.');
+  if(body.projectReceipts.length&&!canWrite(m.role,'payments'))throw new AppError('Vai trò của bạn không có quyền ghi nhận tiền.',403);
+ }
  if(['save','delete'].includes(action)){
   if(!COLLECTIONS.includes(col))throw new AppError('Loại dữ liệu không hợp lệ.');
   if(!canWrite(m.role,col))throw new AppError('Vai trò của bạn không có quyền thao tác mục này.',403);
@@ -41,6 +46,10 @@ export async function mutate(store:WorkspaceStore,u:Identity,body:any,ownerEmail
    if(s[col].length>=5000&&!existing)throw new AppError('Đã đạt giới hạn 5.000 bản ghi mỗi mục của bản thử nghiệm.');
    if(existing)s[col]=s[col].map(r=>r.id===existing.id?normalized:r);else s[col].push(normalized);
    detail=normalized.name;
+   if(col==='projects'&&body.projectReceipts?.length){
+    const receipts=recordProjectReceipts(s,normalized,!existing,body.projectReceipts);
+    if(receipts.length)detail+=' · '+receipts.map(r=>r.name+': '+r.amount.toLocaleString('vi-VN')+' VND').join(' · ');
+   }
   }else{const item=s[col].find(r=>r.id===body.id);deleteRecord(s,col,body.id);detail=item?.name||body.id;}
  }else if(action==='settings'){
   if(m.role!=='owner')throw new AppError('Chỉ chủ studio được cấu hình.',403);

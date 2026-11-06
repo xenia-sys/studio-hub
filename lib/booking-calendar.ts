@@ -1,4 +1,5 @@
 import type { Row } from './domain.ts';
+import { projectBookingDate } from './period.ts';
 
 export type CalendarView = 'day' | 'week' | 'month';
 export type CalendarProject = { id: string; name: string; status: string; resource: string };
@@ -59,15 +60,16 @@ export function indexBookings(projects: readonly Row[]): BookingIndex {
  for (const row of projects) {
   if (row.status === 'cancelled') continue;
   const project: CalendarProject = { id: row.id, name: row.name, status: row.status, resource: row.resource || '' };
-  if (!validDate(row.start)) {
+  const date = projectBookingDate(row);
+  if (!validDate(date)) {
    undated.push(project);
    continue;
   }
-  const day = days.get(row.start) ?? { bookings: [], untimed: [] };
+  const day = days.get(date) ?? { bookings: [], untimed: [] };
   const from = timeMinutes(row.startTime), to = timeMinutes(row.endTime);
   if (from === null || to === null || to <= from) day.untimed.push(project);
   else day.bookings.push({ ...project, from, to });
-  days.set(row.start, day);
+  days.set(date, day);
  }
  for (const day of days.values()) day.bookings.sort((a, b) => a.from - b.from || a.to - b.to || a.id.localeCompare(b.id));
  return { days, undated };

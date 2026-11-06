@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { bookingDay, bookingLanes, bookingWindow, calendarMonth, calendarWeek, indexBookings, shiftCalendar } from '../lib/booking-calendar.ts';
-import type { Row } from '../lib/domain.ts';
+import { emptyWorkspace, normalize, type Row } from '../lib/domain.ts';
+import { projectDateValue } from '../lib/period.ts';
 
 const day = '2026-11-06';
 const project = (id: string, startTime: string, endTime: string, other: Partial<Row> = {}): Row =>
@@ -60,4 +61,29 @@ test('a full day has no gaps, and calendar navigation respects Monday, month end
  assert.equal(month.at(-1), '2026-12-06');
  assert.equal(shiftCalendar('2024-01-31', 'month', 1), '2024-02-29');
  assert.equal(shiftCalendar('2026-12-31', 'day', 1), '2027-01-01');
+});
+
+test('an explicit booking date drives the calendar and project date filter independently of start and deadline', () => {
+ const moved = project('booking', '08:30', '12:30', { start: '2026-10-31', due: '2026-11-08', bookingDate: '2026-11-07' });
+ const index = indexBookings([moved]);
+ assert.equal(bookingDay(index, '2026-10-31').bookings.length, 0);
+ assert.equal(bookingDay(index, '2026-11-08').bookings.length, 0);
+ assert.equal(bookingDay(index, '2026-11-07').openMinutes, 480);
+ assert.equal(projectDateValue(moved, 'bookingDate'), '2026-11-07');
+ assert.equal(projectDateValue(moved, 'start'), '2026-10-31');
+ assert.equal(projectDateValue(moved, 'due'), '2026-11-08');
+});
+
+test('project saves retain the appointment date and check same-room conflicts on that date', () => {
+ const state = emptyWorkspace({ userId: 'owner', email: 'owner@studio.test', displayName: 'Owner' });
+ state.customers.push({ id: 'customer', name: 'Customer' });
+ const input = project('', '09:00', '11:00', { name: 'Reservation', clientId: 'customer', service: 'Cho thuê studio', value: 0, resource: 'Room A', start: '2026-10-31', due: '2026-11-12', bookingDate: '2026-11-07' });
+ const first = normalize(state, 'projects', input);
+ state.projects.push(first);
+ assert.throws(() => normalize(state, 'projects', { ...input, start: '2026-11-06', startTime: '10:00', endTime: '12:00' }), /trùng giờ/);
+ const second = normalize(state, 'projects', { ...input, bookingDate: '2026-11-09' });
+ assert.equal(second.bookingDate, '2026-11-09');
+ const { bookingDate: _omitted, ...olderClient } = first;
+ assert.equal(normalize(state, 'projects', olderClient, first).bookingDate, '2026-11-07');
+ assert.throws(() => normalize(state, 'projects', { ...input, bookingDate: '2026-11-31' }), /không hợp lệ/);
 });

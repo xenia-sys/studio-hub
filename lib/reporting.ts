@@ -1,5 +1,5 @@
 import { metricRecords, type Workspace } from './domain.ts';
-import { displayDay, inPeriod, type DateRange } from './period.ts';
+import { displayDay, inPeriod, projectBookingDate, type DateRange } from './period.ts';
 
 const DAY = 86400000;
 const stamp = (day: string) => new Date(day + 'T00:00:00Z').getTime();
@@ -13,7 +13,7 @@ export function financeBalances(state: Workspace, range: DateRange) {
  }
  const receivables = state.projects.filter(p => p.status === 'completed' && inPeriod(p.completedAt, range)).map(project => ({ project, remaining: Math.max(0, project.value - (received.get(project.id) || 0)) })).filter(row => row.remaining > 0);
  const payables = state.costs.filter(c => inPeriod(c.incurredAt, range)).map(cost => ({ cost, remaining: Math.max(0, cost.amount - (cost.openingPaidAmount || 0) - (paid.get(cost.id) || 0)) })).filter(row => row.remaining > 0);
- const deposits = state.projects.filter(p => !['completed', 'cancelled'].includes(p.status) && inPeriod(p.start, range)).reduce((sum, p) => sum + (received.get(p.id) || 0), 0);
+ const deposits = state.projects.filter(p => !['completed', 'cancelled'].includes(p.status) && inPeriod(projectBookingDate(p), range)).reduce((sum, p) => sum + (received.get(p.id) || 0), 0);
  return { receivables, payables, deposits, receivable: receivables.reduce((sum, row) => sum + row.remaining, 0), payable: payables.reduce((sum, row) => sum + row.remaining, 0) };
 }
 export function reportSeries(state: Workspace, range: DateRange, fallbackDay: string) {

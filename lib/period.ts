@@ -2,8 +2,18 @@ export type DateRange = { from: string; to: string };
 export type PeriodMode = 'all' | 'day' | 'month' | 'year' | 'range';
 export type PeriodSelection = { mode: PeriodMode; day: string; month: string; year: string; from: string; to: string };
 export type Period = string | DateRange;
-export type ProjectDateField = 'start' | 'due' | 'completedAt';
-export const PROJECT_DATE_FIELDS: Record<ProjectDateField, string> = { start: 'Ngày bắt đầu / booking', due: 'Hạn bàn giao', completedAt: 'Ngày hoàn thành' };
+export type ProjectDateField = 'bookingDate' | 'start' | 'due' | 'completedAt';
+export const PROJECT_DATE_FIELDS: Record<ProjectDateField, string> = { bookingDate: 'Ngày booking', start: 'Ngày bắt đầu dự án', due: 'Hạn bàn giao', completedAt: 'Ngày hoàn thành' };
+
+export function projectBookingDate(project: Record<string, unknown>) {
+ if (typeof project.bookingDate === 'string' && project.bookingDate) return project.bookingDate;
+ return typeof project.start === 'string' ? project.start : '';
+}
+export function projectDateValue(project: Record<string, unknown>, field: ProjectDateField) {
+ if (field === 'bookingDate') return projectBookingDate(project);
+ const value = project[field];
+ return typeof value === 'string' ? value : '';
+}
 
 export function defaultPeriod(day: string, mode: PeriodMode = 'month'): PeriodSelection {
  return { mode, day, month: day.slice(0, 7), year: day.slice(0, 4), from: day.slice(0, 7) + '-01', to: day };

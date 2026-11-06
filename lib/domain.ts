@@ -1,4 +1,4 @@
-import { inPeriod, type Period } from './period.ts';
+import { inPeriod, projectBookingDate, type Period } from './period.ts';
 export type Row = { id: string; [key: string]: any };
 export type Collection = 'customers' | 'projects' | 'staff' | 'tasks' | 'costs' | 'payments';
 export type Role = 'owner' | 'manager' | 'finance' | 'viewer';
@@ -59,13 +59,16 @@ export function normalize(s:Workspace,c:Collection,input:Row,existing?:Row):Row{
   if(status==='cancelled'&&existing&&paidProject(s,existing.id)>0)throw new AppError('Dự án đã thu tiền. Cần xử lý giao dịch trước khi hủy.');
   const owners=Array.isArray(d.staffIds)?d.staffIds.map((x:string)=>ref(s,'staff',x,true)):[];
   const start=date(d.start),due=date(d.due,true);if(start&&start>due)throw new AppError('Ngày bắt đầu phải trước hạn bàn giao.');
+  const bookingDate=date(d.bookingDate??existing?.bookingDate);
+  const slotDate=projectBookingDate({bookingDate,start});
   const completedAt=status==='completed'?date(d.completedAt,true):'';
   if(completedAt&&completedAt>today())throw new AppError('Ngày hoàn thành không được ở tương lai.');
   const service=choose(d.service,s.settings.services);
   const room=str(d,'resource',false,160),endTime=str(d,'endTime',false,8),startTime=str(d,'startTime',false,8);
   if(startTime||endTime){if(!/^\d{2}:[0-5]\d$/.test(startTime)||!/^\d{2}:[0-5]\d$/.test(endTime)||startTime>=endTime||endTime>'23:59'||startTime>'23:59')throw new AppError('Khoảng giờ booking không hợp lệ.');}
-  if(room&&start&&startTime&&status!=='cancelled'&&s.projects.some(p=>p.id!==existing?.id&&p.status!=='cancelled'&&p.resource===room&&p.start===start&&p.startTime&&p.startTime<endTime&&startTime<p.endTime))throw new AppError('Tài nguyên đã có booking trùng giờ.');
-  return {...base,name:str(d,'name',true,180),clientId:ref(s,'customers',d.clientId,true),service,value,status,start,due,completedAt,staffIds:owners,resource:room,startTime,endTime,notes:str(d,'notes')};
+  if(startTime&&!slotDate)throw new AppError('Vui lòng chọn ngày booking.');
+  if(room&&slotDate&&startTime&&status!=='cancelled'&&s.projects.some(p=>p.id!==existing?.id&&p.status!=='cancelled'&&p.resource===room&&projectBookingDate(p)===slotDate&&p.startTime&&p.startTime<endTime&&startTime<p.endTime))throw new AppError('Tài nguyên đã có booking trùng giờ.');
+  return {...base,name:str(d,'name',true,180),clientId:ref(s,'customers',d.clientId,true),service,value,status,start,due,bookingDate,completedAt,staffIds:owners,resource:room,startTime,endTime,notes:str(d,'notes')};
  }
  if(c==='tasks')return {...base,name:str(d,'name',true,180),projectId:ref(s,'projects',d.projectId),staffId:ref(s,'staff',d.staffId,true),due:date(d.due,true),status:choose(d.status,Object.keys(TASK_STATUS)),hours:Math.max(0,Math.min(1000,Number(d.hours)||0)),notes:str(d,'notes')};
  if(c==='costs'){

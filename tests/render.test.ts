@@ -4,7 +4,7 @@ import React from 'react';
 import { renderToString } from 'react-dom/server';
 import StudioApp from '../app/StudioApp';
 import { demoWorkspace } from '../lib/demo.ts';
-import { visibleState } from '../lib/domain.ts';
+import { today, visibleState } from '../lib/domain.ts';
 const state=demoWorkspace({userId:'owner',email:'owner@studio.test',displayName:'Test Owner'});
 const data={state,me:state.members[0],revision:0};
 test('all 6 application views render with the expected records and controls',()=>{
@@ -21,4 +21,13 @@ test('viewer UI omits write controls',()=>{
  const member:any={id:'viewer',name:'Test Viewer',email:'viewer@studio.test',role:'viewer',active:true,userId:'viewer'};
  const safe={state:visibleState(state,member),me:member,revision:0};
  for(const view of ['dashboard','customers','projects','staff']){const html=renderToString(React.createElement(StudioApp,{initialData:safe,initialView:view}));assert.ok(!html.includes('Tạo mới'));assert.ok(!html.includes('Thêm khách hàng'));assert.ok(!html.includes('Thêm dự án'));assert.ok(!html.includes('Thêm nhân sự'));}
+});
+test('the project calendar renders the supplied workspace booking with its original hours',()=>{
+ const booking={...state.projects[0],id:'calendar-entry',name:'Booking trong workspace',status:'confirmed',start:today(),startTime:'07:00',endTime:'09:00'};
+ const cancelled={...booking,id:'cancelled-entry',name:'Lịch đã hủy',status:'cancelled'};
+ const input={...data,state:{...state,demoLoaded:false,projects:[booking,cancelled]}};
+ const html=renderToString(React.createElement(StudioApp,{initialData:input,initialView:'projects'})).split('Danh sách dự án')[0];
+ assert.match(html,/Lịch booking/);
+ assert.match(html,/Xem dự án Booking trong workspace · 07:00–09:00/);
+ assert.doesNotMatch(html,/Lịch đã hủy/);
 });

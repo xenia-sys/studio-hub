@@ -16,6 +16,7 @@
 
 - Dashboard, discovery questionnaire, CRM và lịch chăm sóc khách hàng.
 - Dự án theo 7 dịch vụ, booking tài nguyên có kiểm tra trùng giờ, phân công nhân sự/công việc.
+- Lịch booking Ngày / Tuần / Tháng dùng các dự án thực trong workspace, hiển thị xanh khi có booking và đỏ khi còn trống. Bấm booking để mở chi tiết. Số giờ trống tính theo hợp các khoảng đặt trong khung 08:00–20:00 (GMT+7); lịch ngoài khung vẫn hiển thị. Bản ghi hủy không giữ chỗ; ngày có dự án thiếu giờ hiển thị khoảng chưa xác định.
 - Chi phí phát sinh, khoản thực thu/chi, công nợ, lợi nhuận và dòng tiền; xuất JSON; nhật ký 500 thao tác.
 - 4 vai trò do máy chủ kiểm tra: chủ studio, quản lý vận hành, tài chính, chỉ xem.
 - Mỗi lần lưu dùng revision để tránh ghi đè thay đổi của người khác.

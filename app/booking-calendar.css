@@ -65,6 +65,11 @@ button.booking-week-heading:hover, .booking-week-heading.booking-selected { back
 .booking-event b, .booking-event small { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: inherit; }
 .booking-event b { font-size: 12px; }
 .booking-event small { font-size: 11px; }
+.booking-event .booking-event-time {
+ display: flex; flex-wrap: wrap; align-items: center; column-gap: 2px; flex-shrink: 0;
+ overflow: visible; white-space: normal; text-overflow: clip; font-variant-numeric: tabular-nums;
+}
+.booking-event-time time { white-space: nowrap; }
 .booking-event:hover, button.booking-interval:hover { background: #d4e7d1; }
 .booking-week-compact { display: none; }
 .booking-day { display: grid; gap: 6px; padding: 13px 18px; border-top: 1px solid var(--line); }

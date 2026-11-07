@@ -87,7 +87,9 @@ function WeekSchedule({ days, today, selected, onDay, onOpen }: {
       className="booking-block booking-event booking-tone-booked"
       style={{ top: pct(booking.from), height: (booking.to - booking.from) / duration * 100 + '%', left: 'calc(' + lane / lanes * 100 + '% + 2px)', width: 'calc(' + 100 / lanes + '% - 4px)' }}
       onClick={() => onOpen(booking.id)} aria-label={'Xem dự án ' + bookingLabel(booking)} title={bookingLabel(booking)}>
-      <b>{booking.name}</b><small>{timeRange(booking.from, booking.to)}</small>
+      <small className="booking-event-time">
+       <time dateTime={bookingClock(booking.from)}>{bookingClock(booking.from)}</time><span aria-hidden="true">–</span><time dateTime={bookingClock(booking.to)}>{bookingClock(booking.to)}</time>
+      </small><b>{booking.name}</b>
      </button>)}
     </div>
    </div>)}
